@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: hdmai-server
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      # ... all your other env vars
+
+  - type: cron
+    name: keep-alive
+    env: python
+    schedule: "*/10 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "import httpx; import asyncio; asyncio.run(httpx.AsyncClient().get('https://hdmai-server.onrender.com/health'))"

@@ -1,0 +1,16 @@
+<!-- ====================================================================================================
+client/public/icon.svg
+==================================================================================================== -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#2563eb"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-weight="700" 
+        font-size="22" fill="white" letter-spacing="-1">
+    HDM
+  </text>
+  <text x="50%" y="76%" dominant-baseline="middle" text-anchor="middle" 
+        font-family="system-ui, -apple-system, sans-serif" font-weight="400" 
+        font-size="9" fill="#93c5fd" letter-spacing="2">
+    AI
+  </text>
+</svg>

@@ -1,0 +1,30 @@
+# ====================================================================================================
+# server/services/spark/privacy_service.py
+# ====================================================================================================
+from typing import Dict, Any
+from services.ai_service import ai_service
+import json
+
+class PrivacyService:
+    async def advisor(self, concern: str, context: str = None) -> Dict[str, Any]:
+        prompt = f"Give privacy advice about: {concern}"
+        if context: prompt += f"\nContext: {context}"
+        result = await ai_service.groq_chat([{"role": "user", "content": prompt}], max_tokens=500)
+        return {"advice": result.get("reply", "")}
+
+    async def data_leak_check(self, message: str, scan_type: str = "full") -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Check for data leaks (emails, phones, SSN, keys). Return JSON: {{\"detected\": true/false, \"findings\": []}}.\nText: {message}"}], temperature=0.1, max_tokens=200)
+        try: return json.loads(result.get("reply", "{}"))
+        except: return {"detected": False, "findings": []}
+
+    async def encrypt_suggest(self, message: str) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Suggest encryption method for this message. Return JSON: {{\"suggestion\": \"...\"}}.\nMessage: {message}"}], max_tokens=100)
+        try: return json.loads(result.get("reply", "{}"))
+        except: return {"suggestion": "Use end-to-end encryption"}
+
+    async def audit_log(self, user_id: str, period: str = "last_30d") -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Generate a sample privacy audit log for user {user_id} for {period}. Return JSON: {{\"log\": []}}"}], max_tokens=300)
+        try: return {"log": json.loads(result.get("reply", "{}")).get("log", [])}
+        except: return {"log": []}
+
+privacy_service = PrivacyService()

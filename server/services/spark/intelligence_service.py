@@ -1,0 +1,39 @@
+# ====================================================================================================
+# server/services/spark/intelligence_service.py
+# ====================================================================================================
+from typing import Dict, Any
+from services.ai_service import ai_service
+import json
+
+class IntelligenceService:
+    async def sentiment(self, text: str) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Analyze sentiment. Return JSON: {{\"sentiment\": \"positive/negative/neutral\", \"score\": -1 to 1}}.\nText: {text}"}], temperature=0.1, max_tokens=100)
+        try: return {"sentiment": json.loads(result.get("reply", "{}"))}
+        except: return {"sentiment": {"sentiment": "neutral", "score": 0}}
+
+    async def keywords(self, text: str, count: int = 10) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Extract top {count} keywords. Return JSON: {{\"keywords\": []}}.\nText: {text}"}], temperature=0.2, max_tokens=200)
+        try: return {"keywords": json.loads(result.get("reply", "{}")).get("keywords", [])}
+        except: return {"keywords": []}
+
+    async def entities(self, text: str) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Extract named entities. Return JSON: {{\"entities\": [{{\"name\", \"type\"}}]}}.\nText: {text}"}], temperature=0.2, max_tokens=300)
+        try: return {"entities": json.loads(result.get("reply", "{}")).get("entities", [])}
+        except: return {"entities": []}
+
+    async def read_receipt_prediction(self, message: str, sender_history: list = None) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Predict if this message will be read soon. Return JSON: {{\"prediction\": \"likely/neutral/unlikely\", \"reason\": \"...\"}}.\nMessage: {message}"}], max_tokens=100)
+        try: return json.loads(result.get("reply", "{}"))
+        except: return {"prediction": "neutral"}
+
+    async def urgency(self, message: str) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Rate urgency of this message. Return JSON: {{\"urgency\": \"low/medium/high\", \"reason\": \"...\"}}.\nMessage: {message}"}], max_tokens=100)
+        try: return json.loads(result.get("reply", "{}"))
+        except: return {"urgency": "medium"}
+
+    async def language_detect(self, text: str) -> Dict[str, Any]:
+        result = await ai_service.groq_chat([{"role": "user", "content": f"Detect language. Return JSON: {{\"language\": \"en\", \"confidence\": 0.99}}.\nText: {text}"}], max_tokens=50)
+        try: return json.loads(result.get("reply", "{}"))
+        except: return {"language": "en"}
+
+intelligence_service = IntelligenceService()
