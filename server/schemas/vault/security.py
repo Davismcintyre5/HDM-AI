@@ -1,5 +1,5 @@
 # ====================================================================================================
-# server/schemas/vault/security.py
+# 2. server/schemas/vault/security.py
 # ====================================================================================================
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -7,17 +7,9 @@ from typing import Optional, List
 class SecurityOverviewRequest(BaseModel):
     user_id: str
     include_details: bool = True
+    data: Optional[dict] = None  # password_health, breaches, devices, network
 
 class SecurityAlertRequest(BaseModel):
     user_id: str
     severity_filter: Optional[str] = None  # info, warning, critical
-
-class SecurityOverviewResponse(BaseModel):
-    score: int = 0
-    summary: str = ""
-    findings: List[dict] = []
-    recommendations: List[str] = []
-
-class SecurityAlertResponse(BaseModel):
-    alerts: List[dict] = []
-    has_critical: bool = False
+    data: Optional[dict] = None  # current_threats

@@ -1,5 +1,5 @@
 # ====================================================================================================
-# server/schemas/vault/chat.py
+# 1. server/schemas/vault/chat.py
 # ====================================================================================================
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -9,8 +9,4 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
     user_id: str
     feature: str = "public"  # public, private
-
-class ChatResponse(BaseModel):
-    reply: str
-    conversation_id: str
-    tokens_used: int = 0
+    data: Optional[dict] = None  # real user security data

@@ -1,5 +1,5 @@
 # ====================================================================================================
-# server/routes/vault.py (FULL - 8 endpoints)
+# 9. server/routes/vault.py — COMPLETE (8 endpoints)
 # ====================================================================================================
 from fastapi import APIRouter, Depends
 from middleware.auth import get_project_auth
@@ -16,38 +16,38 @@ router = APIRouter(prefix="/vault", tags=["Vault AI"])
 A = Depends(get_project_auth("vault"))
 
 @router.post("/public/chat")
-async def public_chat(request: ChatRequest, auth=Depends(get_project_auth("vault"))):
-    result = await vault_chat_service.chat(request.user_id, request.message, request.conversation_id, "public")
+async def public_chat(request: ChatRequest, auth=A):
+    result = await vault_chat_service.chat(request.user_id, request.message, request.conversation_id, "public", request.data)
     return {"success": True, "data": result}
 
 @router.post("/chat")
 async def private_chat(request: ChatRequest, auth=A):
-    result = await vault_chat_service.chat(request.user_id, request.message, request.conversation_id, "private")
+    result = await vault_chat_service.chat(request.user_id, request.message, request.conversation_id, "private", request.data)
     return {"success": True, "data": result}
 
 @router.post("/security/overview")
 async def security_overview(request: SecurityOverviewRequest, auth=A):
-    result = await vault_security_service.overview(request.user_id, request.include_details)
+    result = await vault_security_service.overview(request.user_id, request.include_details, request.data)
     return {"success": True, "data": result}
 
 @router.post("/security/alerts")
 async def security_alerts(request: SecurityAlertRequest, auth=A):
-    result = await vault_security_service.alerts(request.user_id, request.severity_filter)
+    result = await vault_security_service.alerts(request.user_id, request.severity_filter, request.data)
     return {"success": True, "data": result}
 
 @router.post("/command")
 async def command(request: CommandRequest, auth=A):
-    result = await vault_command_service.execute(request.user_id, request.command)
+    result = await vault_command_service.execute(request.user_id, request.command, request.data)
     return {"success": True, "data": result}
 
 @router.post("/report/generate")
 async def report_generate(request: ReportGenerateRequest, auth=A):
-    result = await vault_report_service.generate(request.user_id, request.report_type)
+    result = await vault_report_service.generate(request.user_id, request.report_type, request.data)
     return {"success": True, "data": result}
 
 @router.post("/report/schedule")
 async def report_schedule(request: ReportScheduleRequest, auth=A):
-    result = await vault_report_service.schedule(request.user_id, request.report_type, request.webhook_url, request.frequency)
+    result = await vault_report_service.schedule(request.user_id, request.report_type, request.webhook_url, request.frequency, request.data)
     return {"success": True, "data": result}
 
 @router.get("/health")
