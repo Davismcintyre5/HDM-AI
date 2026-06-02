@@ -130,6 +130,7 @@ async def chat_stream(
                     messages_list,
                     temperature=temperature,
                     max_tokens=max_tokens_val,
+                    service="general",
                 ):
                     full_response += chunk
                     yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conv_id})}\n\n"

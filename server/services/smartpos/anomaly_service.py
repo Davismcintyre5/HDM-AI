@@ -1,5 +1,5 @@
 # ====================================================================================================
-# server/services/smartpos/anomaly_service.py
+# 12. server/services/smartpos/anomaly_service.py
 # ====================================================================================================
 from typing import Dict, Any, List
 from services.ai_service import ai_service
@@ -8,16 +8,18 @@ import json
 
 class AnomalyService:
     async def detect(self, business_id: str, data: List[dict] = None) -> Dict[str, Any]:
-        if data:
-            prompt = f"""You are a POS anomaly detection AI. Analyze this REAL data for anomalies.
-
-Data: {json.dumps(data)[:3000]}
-
-Return JSON: {{"anomalies": [{{"description": "specific anomaly", "severity": "low/medium/high", "data_point": {{...}}}}]}}"""
-        else:
+        if not data:
             return {"anomalies": [], "count": 0, "message": "No data provided. Send transaction/sales data for anomaly detection."}
 
-        result = await ai_service.groq_chat([{"role": "user", "content": prompt}], temperature=0.2, max_tokens=400)
+        parts = ["You are a POS anomaly detection AI. Analyze this REAL transaction data for anomalies.", "", "--- REAL TRANSACTION DATA ---"]
+        for i, entry in enumerate(data[:50]):
+            parts.append(f"  [{i+1}] {json.dumps(entry)}")
+        parts.append(f"\n\nTotal records: {len(data)}")
+        parts.append('\n\nReturn JSON: {"anomalies": [{"description": "specific anomaly", "severity": "low/medium/high", "data_point": {...}}]}')
+        parts.append("⚠️ Only flag REAL anomalies found in the data above. If data looks normal, return empty array.")
+
+        prompt = "\n".join(parts)
+        result = await ai_service.groq_chat([{"role": "user", "content": prompt}], temperature=0.2, max_tokens=400, service="smartpos")
         try:
             parsed = json.loads(result.get("reply", "{}"))
             anomalies = parsed.get("anomalies", [])

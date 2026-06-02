@@ -1,8 +1,6 @@
-"""
-HDM AI - ERP Query Service
-Analyzes REAL data from ERP system with rate limiting
-"""
-
+# ====================================================================================================
+# server/services/erp/query_service.py — COMPLETE with landing fix
+# ====================================================================================================
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from services.ai_service import ai_service
@@ -12,105 +10,124 @@ import json
 import hashlib
 import asyncio
 
-# Simple in-memory cache
-_cache: Dict[str, tuple] = {}  # key -> (response, expiry_time)
-CACHE_DURATION = timedelta(minutes=5)
-MIN_REQUEST_INTERVAL = 2.0  # seconds between requests
+_cache: Dict[str, tuple] = {}
+CACHE_DURATION = timedelta(minutes=15)  # Increased from 5 to 15 minutes
+MIN_REQUEST_INTERVAL = 0.3
 _last_request_time = 0.0
 
 
 class ERPQueryService:
 
     async def process_query(
-        self,
-        tenant_id: str,
-        query: str,
-        provider: str = "groq",
-        context: Optional[Dict] = None,
-        data: Optional[Dict] = None,
+        self, tenant_id: str, query: str, provider: str = "groq",
+        context: Optional[Dict] = None, data: Optional[Dict] = None,
     ) -> Dict[str, Any]:
-        
         global _last_request_time
-        
-        # Generate cache key from query + context + data
+
         cache_key = hashlib.md5(
             f"{tenant_id}:{query}:{json.dumps(context or {}, sort_keys=True)}:{json.dumps(data or {}, sort_keys=True)}".encode()
         ).hexdigest()
-        
+
         # Check cache
         if cache_key in _cache:
             cached_response, expiry = _cache[cache_key]
             if datetime.utcnow() < expiry:
                 logger.info(f"ERP cache hit for tenant={tenant_id}")
                 return cached_response
-        
-        # Rate limiting — ensure minimum interval between requests
+
         now = datetime.utcnow().timestamp()
         time_since_last = now - _last_request_time
-        if time_since_last < MIN_REQUEST_INTERVAL:
+        if time_since_last < MIN_REQUEST_INTERVAL and time_since_last > 0:
             wait_time = MIN_REQUEST_INTERVAL - time_since_last
-            logger.info(f"ERP rate limiting — waiting {wait_time:.1f}s")
-            await asyncio.sleep(wait_time)
+            if wait_time < 5:
+                await asyncio.sleep(wait_time)
         _last_request_time = datetime.utcnow().timestamp()
-        
-        # Build simple system prompt
-        system_parts = ["You are an ERP AI assistant. Answer the user's question based on the provided context. Be concise."]
 
-        # Add context if available
-        if context:
-            if context.get("source") == "landing":
-                info = []
-                if context.get("payment_methods"):
-                    info.append(f"Payment methods: {context['payment_methods']}")
-                if context.get("locations"):
-                    info.append(f"Locations: {context['locations']}")
-                if context.get("contacts"):
-                    info.append(f"Contacts: {context['contacts']}")
-                if context.get("features"):
-                    info.append(f"Features: {context['features']}")
-                if info:
-                    system_parts.append("Business information:\n" + "\n".join(info))
-            
-            if context.get("source") == "tenant" and context.get("tenant_info"):
-                system_parts.append(f"Tenant: {context['tenant_info']}")
-
-        # Add data if available
-        if data:
-            data_str = json.dumps(data, indent=2)[:2000]  # Shorter context
-            system_parts.append(f"Data for analysis:\n{data_str}")
-
-        system_prompt = "\n\n".join(system_parts)
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
+        messages = []
+        system_parts = [
+            "You are an ERP AI assistant. Analyze REAL business data and answer accurately.",
+            "NEVER say 'no data provided' if data exists. Use specific numbers and names.",
         ]
 
-        logger.info(f"ERP query: tenant={tenant_id}, query='{query[:50]}', context={'yes' if context else 'no'}, data={'yes' if data else 'no'}")
+        # Landing page context
+        if context:
+            if context.get("source") == "landing":
+                system_parts.append("""
+You are speaking to a POTENTIAL CUSTOMER visiting the HDM ERP landing page.
+They are NOT an existing user and do NOT have an ERP system connected.
+Do NOT ask them to "connect your ERP system" or "provide business data".
+Do NOT tell them to "connect their system" — they don't have one yet.
 
-        result = await ai_service.groq_chat(messages, max_tokens=500)  # Shorter responses
-        
-        reply = result.get("reply", "")
-        if not reply and result.get("error"):
-            reply = f"Service busy. Please try again shortly."
-        elif not reply:
-            reply = "Could not process query."
+Instead:
+- Answer their questions about features, pricing, plans, payment methods, and support
+- Use ONLY the information provided below
+- Be friendly and helpful
+- Encourage them to sign up for a free trial or contact support
+- Mention the free trial when relevant
+""")
+                
+                if context.get("payment_methods"):
+                    system_parts.append(f"Payment methods: {context['payment_methods']}")
+                if context.get("locations"):
+                    system_parts.append(f"Locations: {context['locations']}")
+                if context.get("contacts"):
+                    system_parts.append(f"Contacts: {json.dumps(context['contacts'])}")
+                if context.get("features"):
+                    system_parts.append(f"Features: {context['features']}")
+                if context.get("pricingSummary"):
+                    system_parts.append(f"""
+⚠️ EXACT PRICING — USE THESE NUMBERS ONLY. DO NOT MODIFY, ROUND, OR GUESS:
+{context['pricingSummary']}
+
+Repeat the exact numbers above when asked about pricing. Do not invent smaller numbers.
+""")
+                system_parts.append("Answer the visitor's question using ONLY the information above. Do not make up details.")
+
+            # Tenant context
+            if context.get("source") == "tenant" and context.get("tenant_info"):
+                system_parts.append(f"\n--- TENANT CONTEXT ---")
+                system_parts.append(f"Tenant: {json.dumps(context['tenant_info'])}")
+
+        # Real ERP data
+        if data:
+            system_parts.append("\n--- REAL ERP DATA ---")
+            if "summary" in data:
+                system_parts.append("\nQUICK SUMMARY:")
+                for key, value in data["summary"].items():
+                    system_parts.append(f"  {key}: {value}")
+            if "invoices" in data:
+                system_parts.append(f"\nINVOICES ({len(data['invoices'])}):")
+                for inv in data["invoices"][:10]:
+                    system_parts.append(f"  • {inv.get('number','?')}: {inv.get('customer','?')} — {inv.get('amount',0)} ({inv.get('status','?')})")
+            if "products" in data:
+                system_parts.append(f"\nPRODUCTS ({len(data['products'])}):")
+                for p in data["products"][:10]:
+                    w = " ⚠️ LOW" if p.get('stock', 0) <= p.get('reorderLevel', 10) else ""
+                    system_parts.append(f"  • {p.get('name','?')}: Stock {p.get('stock',0)}, Price {p.get('sellingPrice',0)}{w}")
+            if "employees" in data:
+                system_parts.append(f"\nEMPLOYEES ({len(data['employees'])}):")
+                for e in data["employees"][:5]:
+                    system_parts.append(f"  • {e.get('name','?')}: {e.get('position','?')} — {e.get('department','?')}")
+            system_parts.append("\n⚠️ Use ONLY the real data above. Reference specific numbers, names, and amounts.")
+        else:
+            system_parts.append("\n⚠️ No business data provided. Tell user to connect their ERP system.")
+
+        messages.append({"role": "system", "content": "\n".join(system_parts)})
+        messages.append({"role": "user", "content": query})
+
+        result = await ai_service.groq_chat(messages, max_tokens=1500, service="erp")
+        reply = result.get("reply", "") or "Could not process query."
 
         response_data = {
-            "reply": reply,
-            "provider": provider,
+            "reply": reply, "provider": provider,
             "tokens_used": result.get("tokens_used", 0),
             "data_analyzed": data is not None,
         }
-        
-        # Cache successful responses
         if result.get("success"):
             _cache[cache_key] = (response_data, datetime.utcnow() + CACHE_DURATION)
 
         await ERPUsageLog(
-            tenant_id=tenant_id,
-            endpoint="/query",
-            provider=provider,
+            tenant_id=tenant_id, endpoint="/query", provider=provider,
             tokens_used=result.get("tokens_used", 0),
             status="success" if result.get("success") else "error",
         ).insert()

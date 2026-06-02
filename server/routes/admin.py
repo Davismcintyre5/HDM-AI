@@ -1,5 +1,5 @@
 # ====================================================================================================
-# server/routes/admin.py — COMPLETE
+# server/routes/admin.py — COMPLETE with 4-key usage
 # ====================================================================================================
 """
 HDM AI - Admin Panel Routes
@@ -16,7 +16,6 @@ from loguru import logger
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-# AI Configuration (in-memory, defaults to Groq, resets on server restart)
 _ai_config = {
     "default_provider": "groq",
     "default_model": "llama-3.3-70b-versatile",
@@ -48,7 +47,7 @@ async def stats(admin: dict = Depends(get_current_admin)):
 
 
 # ================================================================================================
-# USAGE & CAPACITY
+# USAGE & CAPACITY (4 keys)
 # ================================================================================================
 
 @router.get("/usage")
@@ -56,66 +55,62 @@ async def usage_stats(admin: dict = Depends(get_current_admin)):
     today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = today.replace(day=1)
 
-    groq_today = await UsageLog.find(UsageLog.provider == "groq", UsageLog.timestamp >= today).count()
+    services = ["general", "smartpos", "spark", "vibe", "vault", "erp", "widget"]
+    service_stats = {}
+
+    for service in services:
+        today_count = await UsageLog.find(UsageLog.project == service, UsageLog.timestamp >= today).count()
+        month_count = await UsageLog.find(UsageLog.project == service, UsageLog.timestamp >= month_start).count()
+        tokens = 0
+        async for log in UsageLog.find(UsageLog.project == service, UsageLog.timestamp >= today):
+            tokens += log.tokens_used or 0
+
+        if service in ["general", "vault", "widget"]:
+            key_label = "Key 1"
+        elif service == "erp":
+            key_label = "Key 2"
+        elif service in ["spark", "vibe"]:
+            key_label = "Key 3"
+        else:
+            key_label = "Key 4"
+
+        service_stats[service] = {
+            "name": service.capitalize(),
+            "requests_today": today_count,
+            "requests_month": month_count,
+            "tokens_today": tokens,
+            "key": key_label,
+            "usage_percent": round((today_count / 1440) * 100, 1) if today_count else 0,
+        }
+
+    key1_total = sum(service_stats[s]["requests_today"] for s in ["general", "vault", "widget"])
+    key3_total = sum(service_stats[s]["requests_today"] for s in ["spark", "vibe"])
+
+    groq_today = sum(s["requests_today"] for s in service_stats.values())
+    groq_tokens = sum(s["tokens_today"] for s in service_stats.values())
+    groq_month = sum(s["requests_month"] for s in service_stats.values())
+
     gemini_today = await UsageLog.find(UsageLog.provider == "gemini", UsageLog.timestamp >= today).count()
-    groq_month = await UsageLog.find(UsageLog.provider == "groq", UsageLog.timestamp >= month_start).count()
     gemini_month = await UsageLog.find(UsageLog.provider == "gemini", UsageLog.timestamp >= month_start).count()
 
-    groq_tokens = 0
-    gemini_tokens = 0
-    async for log in UsageLog.find(UsageLog.timestamp >= today):
-        if log.provider == "groq":
-            groq_tokens += log.tokens_used
-        elif log.provider == "gemini":
-            gemini_tokens += log.tokens_used
-
     return SuccessResponse(data={
-        "providers": {
-            "groq": {
-                "name": "Groq (Llama 3.3 70B)",
-                "requests_today": groq_today,
-                "requests_month": groq_month,
-                "tokens_today": groq_tokens,
-                "limit_requests_per_minute": 30,
-                "limit_tokens_per_minute": 150000,
-                "limit_requests_per_day": 1440,
-                "status": "active" if settings.GROQ_API_KEY else "not_configured",
-                "usage_percent_today": round((groq_today / 1440) * 100, 1) if groq_today else 0,
-            },
-            "gemini": {
-                "name": "Gemini (Flash/Pro)",
-                "requests_today": gemini_today,
-                "requests_month": gemini_month,
-                "tokens_today": gemini_tokens,
-                "limit_flash_per_day": 1500,
-                "limit_pro_per_day": 250,
-                "status": "active" if settings.GEMINI_API_KEY else "not_configured",
-                "usage_percent_today": round((gemini_today / 1500) * 100, 1) if gemini_today else 0,
-            },
-            "code_execution": {
-                "name": "Local Python/JS/Bash",
-                "status": "active",
-                "limit": "unlimited",
-                "timeout_seconds": 10,
-            },
+        "services": service_stats,
+        "keys": {
+            "key_1": {"label": "Key 1", "services": "General AI, Vault, Widget", "requests_today": key1_total, "limit_per_day": 1440, "usage_percent": round((key1_total / 1440) * 100, 1) if key1_total else 0},
+            "key_2": {"label": "Key 2", "services": "ERP", "requests_today": service_stats.get("erp", {}).get("requests_today", 0), "limit_per_day": 1440, "usage_percent": round((service_stats.get("erp", {}).get("requests_today", 0) / 1440) * 100, 1) if service_stats.get("erp", {}).get("requests_today", 0) else 0},
+            "key_3": {"label": "Key 3", "services": "Spark, Vibe", "requests_today": key3_total, "limit_per_day": 1440, "usage_percent": round((key3_total / 1440) * 100, 1) if key3_total else 0},
+            "key_4": {"label": "Key 4", "services": "SmartPOS", "requests_today": service_stats.get("smartpos", {}).get("requests_today", 0), "limit_per_day": 1440, "usage_percent": round((service_stats.get("smartpos", {}).get("requests_today", 0) / 1440) * 100, 1) if service_stats.get("smartpos", {}).get("requests_today", 0) else 0},
         },
-        "ai_config": _ai_config,
-        "database": {
-            "mongodb": {
-                "status": "connected",
-                "limit_storage_mb": 512,
-                "type": "MongoDB Atlas" if "mongodb+srv" in settings.MONGODB_URL else "Local MongoDB",
-            },
-            "redis": {
-                "status": "connected" if settings.REDIS_URL else "not_configured",
-                "limit_storage_mb": 30,
-            },
+        "providers": {
+            "groq": {"name": "Groq (Llama 3.3 70B)", "requests_today": groq_today, "requests_month": groq_month, "tokens_today": groq_tokens, "limit_requests_per_day": 5760, "usage_percent_today": round((groq_today / 5760) * 100, 1) if groq_today else 0, "status": "active"},
+            "gemini": {"name": "Gemini (Flash/Pro)", "requests_today": gemini_today, "requests_month": gemini_month, "limit_flash_per_day": 1500, "status": "active" if settings.GEMINI_API_KEY else "not_configured", "usage_percent_today": round((gemini_today / 1500) * 100, 1) if gemini_today else 0},
+            "code_execution": {"name": "Local Python/JS/Bash", "status": "active", "limit": "unlimited"},
         },
         "overall": {
             "total_requests_today": groq_today + gemini_today,
             "total_requests_month": groq_month + gemini_month,
-            "total_tokens_today": groq_tokens + gemini_tokens,
-            "free_tier_savings": "~$200/month vs paid equivalents",
+            "total_tokens_today": groq_tokens,
+            "free_tier_savings": "~$800/month vs paid equivalents (4 free keys × $200 each)",
         },
     })
 
@@ -126,46 +121,26 @@ async def usage_stats(admin: dict = Depends(get_current_admin)):
 
 @router.get("/ai-config")
 async def get_ai_config(admin: dict = Depends(get_current_admin)):
-    """Get current AI provider configuration."""
     return SuccessResponse(data=_ai_config)
 
 
 @router.put("/ai-config")
 async def update_ai_config(request: dict, admin: dict = Depends(get_current_admin)):
-    """
-    Update AI configuration. Changes take effect immediately for all users.
-    
-    Body:
-    {
-        "default_provider": "groq" | "gemini",
-        "temperature": 0.0 - 1.0,
-        "max_tokens": 100 - 4096,
-        "default_model": "llama-3.3-70b-versatile" | "gemini-2.0-flash" | "gemini-2.0-pro"
-    }
-    """
     if "default_provider" in request:
         provider = request["default_provider"]
-        if provider not in ["groq", "gemini"]:
-            raise HTTPException(400, "Provider must be 'groq' or 'gemini'")
+        if provider not in ["groq", "gemini"]: raise HTTPException(400, "Provider must be 'groq' or 'gemini'")
         _ai_config["default_provider"] = provider
-
     if "temperature" in request:
         temp = float(request["temperature"])
-        if temp < 0 or temp > 1:
-            raise HTTPException(400, "Temperature must be between 0.0 and 1.0")
+        if temp < 0 or temp > 1: raise HTTPException(400, "Temperature must be between 0.0 and 1.0")
         _ai_config["temperature"] = temp
-
     if "max_tokens" in request:
         tokens = int(request["max_tokens"])
-        if tokens < 100 or tokens > 4096:
-            raise HTTPException(400, "Max tokens must be between 100 and 4096")
+        if tokens < 100 or tokens > 4096: raise HTTPException(400, "Max tokens must be between 100 and 4096")
         _ai_config["max_tokens"] = tokens
-
-    if "default_model" in request:
-        _ai_config["default_model"] = request["default_model"]
-
+    if "default_model" in request: _ai_config["default_model"] = request["default_model"]
     logger.info(f"AI config updated: {_ai_config}")
-    return SuccessResponse(data=_ai_config, message="AI configuration updated — all users now use these settings")
+    return SuccessResponse(data=_ai_config, message="AI configuration updated")
 
 
 # ================================================================================================
@@ -173,25 +148,12 @@ async def update_ai_config(request: dict, admin: dict = Depends(get_current_admi
 # ================================================================================================
 
 @router.get("/users")
-async def list_users(
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    admin: dict = Depends(get_current_admin),
-):
+async def list_users(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100), admin: dict = Depends(get_current_admin)):
     skip = (page - 1) * limit
     users = await User.find_all().skip(skip).limit(limit).to_list()
     total = await User.count()
     return SuccessResponse(data={
-        "users": [
-            {
-                "id": str(u.id), "email": u.email, "username": u.username,
-                "role": u.role, "is_active": u.is_active,
-                "created_at": u.created_at.isoformat(),
-                "last_login": u.last_login.isoformat() if u.last_login else None,
-                "api_keys_count": u.api_keys_count,
-            }
-            for u in users
-        ],
+        "users": [{"id": str(u.id), "email": u.email, "username": u.username, "role": u.role, "is_active": u.is_active, "created_at": u.created_at.isoformat(), "last_login": u.last_login.isoformat() if u.last_login else None, "api_keys_count": u.api_keys_count} for u in users],
         "pagination": {"total": total, "page": page, "pages": max(1, (total + limit - 1) // limit)},
     })
 
@@ -199,28 +161,16 @@ async def list_users(
 @router.get("/users/{user_id}")
 async def get_user(user_id: str, admin: dict = Depends(get_current_admin)):
     u = await User.get(user_id)
-    if not u:
-        raise HTTPException(404, "User not found")
-    return SuccessResponse(data={
-        "id": str(u.id), "email": u.email, "username": u.username,
-        "role": u.role, "is_active": u.is_active,
-        "created_at": u.created_at.isoformat(),
-        "last_login": u.last_login.isoformat() if u.last_login else None,
-        "api_keys_count": u.api_keys_count,
-        "total_requests": u.total_requests,
-        "tokens_used": u.tokens_used,
-    })
+    if not u: raise HTTPException(404, "User not found")
+    return SuccessResponse(data={"id": str(u.id), "email": u.email, "username": u.username, "role": u.role, "is_active": u.is_active, "created_at": u.created_at.isoformat(), "last_login": u.last_login.isoformat() if u.last_login else None, "api_keys_count": u.api_keys_count, "total_requests": u.total_requests, "tokens_used": u.tokens_used})
 
 
 @router.put("/users/{user_id}")
 async def update_user(user_id: str, request: dict, admin: dict = Depends(get_current_admin)):
     u = await User.get(user_id)
-    if not u:
-        raise HTTPException(404, "User not found")
-    if "role" in request and request["role"] in ["user", "admin"]:
-        u.role = request["role"]
-    if "is_active" in request:
-        u.is_active = request["is_active"]
+    if not u: raise HTTPException(404, "User not found")
+    if "role" in request and request["role"] in ["user", "admin"]: u.role = request["role"]
+    if "is_active" in request: u.is_active = request["is_active"]
     await u.save()
     return SuccessResponse(message="User updated")
 
@@ -228,13 +178,10 @@ async def update_user(user_id: str, request: dict, admin: dict = Depends(get_cur
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
     u = await User.get(user_id)
-    if not u:
-        raise HTTPException(404, "User not found")
+    if not u: raise HTTPException(404, "User not found")
     uid = str(u.id)
-    for key in await APIKey.find(APIKey.user_id == uid).to_list():
-        await key.delete()
-    for key in await ThirdPartyKey.find(ThirdPartyKey.user_id == uid).to_list():
-        await key.delete()
+    for key in await APIKey.find(APIKey.user_id == uid).to_list(): await key.delete()
+    for key in await ThirdPartyKey.find(ThirdPartyKey.user_id == uid).to_list(): await key.delete()
     await u.delete()
     return SuccessResponse(message="User and all data permanently deleted")
 
@@ -246,15 +193,11 @@ async def delete_user(user_id: str, admin: dict = Depends(get_current_admin)):
 @router.get("/health")
 async def health():
     return SuccessResponse(data={
-        "server": "running",
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
-        "mongodb": "connected",
-        "redis": "connected" if settings.REDIS_URL else "not configured",
+        "server": "running", "version": settings.VERSION, "environment": settings.ENVIRONMENT,
+        "mongodb": "connected", "redis": "connected" if settings.REDIS_URL else "not configured",
         "groq_api": "connected" if settings.GROQ_API_KEY else "not configured",
         "gemini_api": "connected" if settings.GEMINI_API_KEY else "not configured",
-        "code_execution": "local",
-        "ai_provider": _ai_config["default_provider"],
+        "code_execution": "local", "ai_provider": _ai_config["default_provider"],
     })
 
 
