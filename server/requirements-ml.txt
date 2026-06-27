@@ -1,3 +1,0 @@
-# ML & Semantic Search (~150 MB download)
-scikit-learn==1.5.2
-sentence-transformers==3.2.0
