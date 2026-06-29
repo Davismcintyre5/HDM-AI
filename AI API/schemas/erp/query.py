@@ -1,12 +1,9 @@
-# ====================================================================================================
-# server/schemas/erp/query.py
-# ====================================================================================================
 from pydantic import BaseModel, Field
 from typing import Optional
 
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1)
-    tenant_id: str
+    tenant_id: Optional[str] = "public"
     provider: Optional[str] = "groq"
     context: Optional[dict] = {}
     data: Optional[dict] = None

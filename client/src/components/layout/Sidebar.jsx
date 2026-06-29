@@ -16,7 +16,7 @@ const links = [
   { to: '/learn', icon: BookOpen, label: 'Learn' },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,8 +45,8 @@ export default function Sidebar({ collapsed, onToggle }) {
     } catch {}
   };
 
-  const newChat = () => navigate('/chat');
-  const selectConversation = (id) => navigate(`/chat/${id}`);
+  const newChat = () => { navigate('/chat'); if (onMobileClose) onMobileClose(); };
+  const selectConversation = (id) => { navigate(`/chat/${id}`); if (onMobileClose) onMobileClose(); };
 
   const startRename = (conv, e) => {
     e.stopPropagation();
@@ -75,20 +75,21 @@ export default function Sidebar({ collapsed, onToggle }) {
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };
+  const handleNavClick = () => { if (onMobileClose) onMobileClose(); };
 
   if (collapsed) {
     return (
-      <aside className="hidden lg:flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1">
+      <aside className="flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1">
         <button onClick={onToggle} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg mb-2">
           <PanelLeftClose size={18} />
         </button>
         {links.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} className={({ isActive }) => `p-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}`} title={label}>
+          <NavLink key={to} to={to} onClick={handleNavClick} className={({ isActive }) => `p-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}`} title={label}>
             <Icon size={20} />
           </NavLink>
         ))}
         <div className="flex-1" />
-        <NavLink to="/settings" className={({ isActive }) => `p-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}`} title="Settings">
+        <NavLink to="/settings" onClick={handleNavClick} className={({ isActive }) => `p-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}`} title="Settings">
           <Settings size={20} />
         </NavLink>
         <button onClick={handleLogout} className="p-2.5 text-text-muted hover:text-danger hover:bg-bg-tertiary rounded-lg" title="Logout">
@@ -99,7 +100,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0">
+    <aside className="flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0">
       <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -107,7 +108,10 @@ export default function Sidebar({ collapsed, onToggle }) {
           </div>
           <span className="text-text-primary font-semibold">HDM AI</span>
         </div>
-        <button onClick={onToggle} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg">
+        <button onClick={onMobileClose} className="lg:hidden p-1.5 text-text-muted hover:text-text-primary rounded-lg">
+          <X size={18} />
+        </button>
+        <button onClick={onToggle} className="hidden lg:block p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg">
           <PanelLeftClose size={16} />
         </button>
       </div>
@@ -120,7 +124,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       <nav className="px-2 space-y-0.5">
         {links.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to}
+          <NavLink key={to} to={to} onClick={handleNavClick}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'}`
             }>
@@ -173,7 +177,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         </button>
         {profileOpen && (
           <div className="mt-1 px-2 space-y-0.5">
-            <NavLink to="/settings" onClick={() => setProfileOpen(false)}
+            <NavLink to="/settings" onClick={() => { setProfileOpen(false); handleNavClick(); }}
               className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'}`}>
               <Settings size={16} /> Settings
             </NavLink>

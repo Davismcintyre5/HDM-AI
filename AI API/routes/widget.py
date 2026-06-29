@@ -17,6 +17,7 @@ async def chat(request: ChatRequest):
         messages=request.messages,
         user_id=request.user_id,
         context=context,
+        data=request.data,
     )
     return {"success": True, "data": result}
 

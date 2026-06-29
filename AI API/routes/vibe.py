@@ -91,3 +91,7 @@ async def acc_tts(r: TextToSpeechRequest): return {"success": True, "data": awai
 async def sys_health(): return {"success": True, "data": await vibe_system_service.health()}
 @router.get("/stats")
 async def sys_stats(): return {"success": True, "data": await vibe_system_service.stats()}
+
+@router.post("/public/chat")
+async def public_chat(r: ChatMessageRequest):
+    return {"success": True, "data": await vibe_chat_service.chat_message(r.user_id or "public", r.message, feature="public", data=r.data)}

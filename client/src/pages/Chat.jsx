@@ -7,6 +7,8 @@ import ChatStream from '../components/app/ChatStream';
 import ChatInput from '../components/app/ChatInput';
 import Spinner from '../components/ui/Spinner';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function Chat() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -29,40 +31,40 @@ export default function Chat() {
     }
   }, [conversationId]);
 
-const handleSend = useCallback(async ({ message, searchEnabled, deepThink, files }) => {
-  const displayMsg = message || (files?.length ? `Analyzing ${files.length} file(s)...` : '');
-  if (displayMsg) {
-    setMessages(prev => [...prev, { role: 'user', content: displayMsg }]);
-  }
-  setLoading(true);
-  setStreaming('');
-
-  try {
-    const formData = new FormData();
-    formData.append('message', message || '');
-    if (conversationId) formData.append('conversationId', conversationId);
-    if (searchEnabled) formData.append('search_enabled', 'true');
-    if (deepThink) formData.append('deep_think', 'true');
-    if (files?.length) {
-      files.forEach(f => formData.append('files', f));
+  const handleSend = useCallback(async ({ message, searchEnabled, deepThink, files }) => {
+    const displayMsg = message || (files?.length ? `Analyzing ${files.length} file(s)...` : '');
+    if (displayMsg) {
+      setMessages(prev => [...prev, { role: 'user', content: displayMsg }]);
     }
+    setLoading(true);
+    setStreaming('');
 
-    const token = localStorage.getItem('token');
-    const res = await fetch('/api/v1/chat/general', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
+    try {
+      const formData = new FormData();
+      formData.append('message', message || '');
+      if (conversationId) formData.append('conversationId', conversationId);
+      if (searchEnabled) formData.append('search_enabled', 'true');
+      if (deepThink) formData.append('deep_think', 'true');
+      if (files?.length) {
+        files.forEach(f => formData.append('files', f));
+      }
 
-    const data = await res.json();
-    const reply = data.data?.reply || 'No response.';
-    setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-    if (!conversationId) setConversationId(data.data?.conversationId);
-  } catch {
-    setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Try again.' }]);
-  }
-  setLoading(false);
-}, [conversationId]);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE_URL}/api/v1/chat/general`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      const reply = data.data?.reply || 'No response.';
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      if (!conversationId) setConversationId(data.data?.conversationId);
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Try again.' }]);
+    }
+    setLoading(false);
+  }, [conversationId]);
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto">

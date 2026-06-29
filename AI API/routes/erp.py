@@ -1,8 +1,3 @@
-# ====================================================================================================
-# HDM AI Engine - routes/erp.py
-# ERP AI Gateway — Stateless, No Auth, No DB
-# ====================================================================================================
-
 from fastapi import APIRouter, HTTPException
 from schemas.erp.query import QueryRequest
 from schemas.erp.file import FileExtractRequest
@@ -12,11 +7,6 @@ from services.erp.file_service import erp_file_service
 from services.erp.alert_service import erp_alert_service
 
 router = APIRouter(prefix="/erp", tags=["ERP AI"])
-
-
-# ================================================================================================
-# QUERY — AI-powered business queries with real data
-# ================================================================================================
 
 @router.post("/query")
 async def query(request: QueryRequest):
@@ -29,10 +19,16 @@ async def query(request: QueryRequest):
     )
     return {"success": True, "data": result}
 
-
-# ================================================================================================
-# FILE EXTRACTION
-# ================================================================================================
+@router.post("/public/chat")
+async def public_chat(request: QueryRequest):
+    result = await erp_query_service.process_query(
+        tenant_id="public",
+        query=request.query,
+        provider=request.provider or "groq",
+        context={"source": "landing", **(request.context or {})},
+        data=request.data,
+    )
+    return {"success": True, "data": result}
 
 @router.post("/file/extract")
 async def file_extract(request: FileExtractRequest):
@@ -45,11 +41,6 @@ async def file_extract(request: FileExtractRequest):
     )
     return {"success": True, "data": result}
 
-
-# ================================================================================================
-# PROACTIVE ALERTS
-# ================================================================================================
-
 @router.post("/alert/analyze")
 async def alert_analyze(request: AlertAnalyzeRequest):
     result = await erp_alert_service.analyze(
@@ -57,11 +48,6 @@ async def alert_analyze(request: AlertAnalyzeRequest):
         data=request.data,
     )
     return {"success": True, "data": result}
-
-
-# ================================================================================================
-# HEALTH CHECK
-# ================================================================================================
 
 @router.get("/health")
 async def health():

@@ -118,3 +118,7 @@ async def sr_con(r: ContactSearchRequest): return {"success": True, "data": awai
 async def sys_health(): return {"success": True, "data": await system_service.health()}
 @router.get("/stats")
 async def sys_stats(): return {"success": True, "data": await system_service.stats()}
+
+@router.post("/public/chat")
+async def public_chat(r: ChatAskRequest):
+    return {"success": True, "data": await spark_chat_service.ask(r.user_id or "public", r.message, r.language or "en", r.data, feature="public")}

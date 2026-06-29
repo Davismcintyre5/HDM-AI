@@ -1,8 +1,3 @@
-# ====================================================================================================
-# HDM AI Engine - services/erp/query_service.py
-# Stateless — MERN logs usage, Python does AI only
-# ====================================================================================================
-
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from services.ai_service import ai_service
@@ -50,9 +45,18 @@ class ERPQueryService:
             "Use specific numbers, names, and amounts. Be professional and helpful.",
         ]
 
-        # Landing page context
-        if context:
-            if context.get("source") == "landing":
+        is_landing = context and context.get("source") == "landing"
+
+        if is_landing:
+            has_info = any([
+                context.get("payment_methods"),
+                context.get("locations"),
+                context.get("contacts"),
+                context.get("features"),
+                context.get("pricingSummary") or context.get("pricing"),
+            ])
+
+            if has_info:
                 system_parts.append("""
 You are speaking to a POTENTIAL CUSTOMER visiting the HDM ERP landing page.
 They are NOT an existing user and do NOT have an ERP system connected.
@@ -66,7 +70,6 @@ Instead:
 - Encourage them to sign up for a free trial or contact support
 - Mention the free trial when relevant
 """)
-
                 if context.get("payment_methods"):
                     system_parts.append(f"Payment methods: {context['payment_methods']}")
                 if context.get("locations"):
@@ -75,22 +78,31 @@ Instead:
                     system_parts.append(f"Contacts: {json.dumps(context['contacts'])}")
                 if context.get("features"):
                     system_parts.append(f"Features: {context['features']}")
-                if context.get("pricingSummary"):
+                pricing = context.get("pricingSummary") or context.get("pricing") or ""
+                if pricing:
                     system_parts.append(f"""
 ⚠️ EXACT PRICING — USE THESE NUMBERS ONLY. DO NOT MODIFY, ROUND, OR GUESS:
-{context['pricingSummary']}
+{pricing}
 
 Repeat the exact numbers above when asked about pricing. Do not invent smaller numbers.
 """)
                 system_parts.append("Answer the visitor's question using ONLY the information above. Do not make up details.")
-
-            # Tenant context
-            if context.get("source") == "tenant" and context.get("tenant_info"):
+            else:
+                system_parts.append("""
+You are speaking to a visitor on the HDM ERP landing page.
+Answer their questions about ERP features, pricing, and plans based on your general knowledge of HDM ERP.
+Be helpful and friendly. Encourage them to contact support or sign up for a free trial.
+Do NOT ask them to connect an ERP system — they don't have one.
+Do NOT mention connecting ERP, business data, or tenant features.
+""")
+        elif context and context.get("source") == "tenant":
+            if context.get("tenant_info"):
                 system_parts.append(f"\n--- TENANT CONTEXT ---")
                 system_parts.append(f"Tenant: {json.dumps(context['tenant_info'])}")
+        else:
+            is_landing = False
 
-        # Real ERP data
-        if data:
+        if data and not is_landing:
             system_parts.append("\n--- REAL ERP DATA ---")
             if "summary" in data:
                 system_parts.append("\nQUICK SUMMARY:")
@@ -110,7 +122,7 @@ Repeat the exact numbers above when asked about pricing. Do not invent smaller n
                 for e in data["employees"][:5]:
                     system_parts.append(f"  • {e.get('name','?')}: {e.get('position','?')} — {e.get('department','?')}")
             system_parts.append("\n⚠️ Use ONLY the real data above. Reference specific numbers, names, and amounts.")
-        else:
+        elif not data and not is_landing:
             system_parts.append("\n⚠️ No business data provided. Tell user to connect their ERP system to unlock insights.")
 
         messages.append({"role": "system", "content": "\n".join(system_parts)})

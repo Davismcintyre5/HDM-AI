@@ -39,12 +39,15 @@ class SmartPOSChatService:
                     base += f"\n  • Email: {s.get('email', 'N/A')}"
                     base += f"\n  • Phone: {s.get('phone', 'N/A')}"
                     base += f"\n  • Hours: {s.get('hours', 'N/A')}"
-                base += "\n\n⚠️ Use ONLY the exact pricing and features above. Do not invent or modify any information."
+                base += "\n\n⚠️ Use ONLY the exact information above. Do not invent or modify anything."
+                base += "\nDo NOT ask the visitor to connect a POS system — they're browsing the landing page."
+            else:
+                base += "\n\nAnswer questions about POS features and benefits. Encourage them to sign up for a free trial. Do NOT ask them to connect anything."
             return base
         else:
             base = "You are SmartPOS AI, a point-of-sale business assistant. Help with inventory, sales, products, customers, employees, and operations."
             if data:
-                base += "\n\nREAL BUSINESS DATA has been provided below. Analyze ONLY this real data."
+                base += "\n\nREAL BUSINESS DATA has been provided below. Analyze ONLY this real data. Do NOT make up product names or numbers."
             else:
                 base += "\n\nNo business data provided. If asked about inventory/sales, tell user to connect their SmartPOS system."
             return base

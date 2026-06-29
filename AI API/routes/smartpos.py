@@ -105,3 +105,13 @@ async def admin_chat(request: AdminChatRequest):
 @router.get("/health")
 async def health():
     return {"success": True, "data": {"status": "healthy", "service": "smartpos"}}
+
+@router.post("/public/chat")
+async def public_chat(request: ChatRequest):
+    result = await smartpos_chat_service.chat(
+        client_id=request.client_id,
+        message=request.message,
+        feature="public",
+        data=request.data,
+    )
+    return {"success": True, "data": result}

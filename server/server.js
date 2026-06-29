@@ -12,7 +12,15 @@ const keyResolver = require('./services/keyResolver');
 
 const app = express();
 
-app.use(cors({ origin: config.corsOrigins, credentials: true }));
+app.use(cors({
+  origin: config.corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.options('*', (req, res) => res.sendStatus(200));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(logger);
@@ -69,6 +77,7 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/v1/internal', require('./routes/internal/keys'));
+app.use('/api/v1/projects', require('./routes/projects'));
 app.use('/api/v1', require('./routes'));
 
 app.use(errorHandler);
@@ -88,7 +97,10 @@ async function start() {
   const location = isAtlas ? 'Atlas' : 'localhost';
 
   try {
-    await mongoose.connect(config.mongodbUrl);
+    await mongoose.connect(config.mongodbUrl, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+    });
     const dbName = mongoose.connection.db.databaseName;
     console.log(`MongoDB: CONNECTED — ${dbName} @ ${location}`);
   } catch (err) {

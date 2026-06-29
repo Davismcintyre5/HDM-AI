@@ -17,11 +17,25 @@ class SparkChatService:
         parts.append("\n\nUse this real data to answer accurately. Do not make up information.")
         return "\n".join(parts)
 
-    async def ask(self, user_id: str, message: str, language: str = "en", data: dict = None) -> Dict[str, Any]:
-        system = "You are Spark Messenger AI. Help with messaging and communication."
+    async def ask(self, user_id: str, message: str, language: str = "en", data: dict = None, feature: str = "private") -> Dict[str, Any]:
+        if feature == "public":
+            system = "You are Spark Messenger AI, a secure messaging platform. Answer questions about features, privacy, and getting started."
+            if data:
+                if data.get("features"):
+                    system += "\n\nFEATURES:\n" + "\n".join([f"  • {f}" for f in data["features"]])
+                if data.get("pricing"):
+                    p = data["pricing"]
+                    system += f"\n\nPRICING: {p}"
+                system += "\n\n⚠️ Use ONLY the above information. Do not invent details. Encourage sign-up."
+            system += "\nDo NOT ask the visitor to connect anything."
+        else:
+            system = "You are Spark Messenger AI. Help with messaging and communication."
+            if data:
+                system += self._build_context(message, data)
+        
         if language != "en": system += f" Respond in {language}."
-        context = self._build_context(message, data)
-        result = await ai_service.groq_chat([{"role": "system", "content": system + context}, {"role": "user", "content": message}], max_tokens=800, module="spark")
+        
+        result = await ai_service.groq_chat([{"role": "system", "content": system}, {"role": "user", "content": message}], max_tokens=800, module="spark")
         return {"reply": result.get("reply", ""), "tokens_used": result.get("tokens_used", 0)}
 
     async def translate(self, text: str, target_language: str, data: dict = None) -> Dict[str, Any]:

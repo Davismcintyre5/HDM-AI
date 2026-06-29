@@ -7,3 +7,4 @@ class ChatRequest(BaseModel):
     messages: Optional[List[Dict[str, str]]] = None
     user_id: Optional[str] = None
     context: Optional[Dict] = None
+    data: Optional[Dict] = None
