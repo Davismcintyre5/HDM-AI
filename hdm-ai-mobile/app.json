@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "HDM AI",
+    "slug": "hdm-ai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hdm.ai",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "HDM AI needs microphone access for voice input."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "com.hdm.ai",
+      "versionCode": 1,
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    },
+    "plugins": [],
+    "updates": {
+      "enabled": false
+    },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "8528d0c3-391f-441d-af65-faeffdd666b4"
+      }
+    }
+  }
+}

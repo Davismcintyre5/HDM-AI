@@ -121,7 +121,7 @@ route_registry = [
     ("erp", "ERP AI Gateway"),
     ("widget", "Widget AI"),
     ("smartpos", "SmartPOS AI"),
-    ("vault", "HDM Vault AI"),
+    ("vault", "NexGuard AI"),
     ("spark", "Spark Messenger AI"),
     ("vibe", "Vibe Social AI"),
 ]

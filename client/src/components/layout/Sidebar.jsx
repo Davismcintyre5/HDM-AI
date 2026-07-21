@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare, Settings, LogOut, FileSearch, Code, Image, BookOpen,
-  Plus, Trash2, Pencil, Check, X, ChevronDown, PanelLeftClose
+  Plus, Trash2, Pencil, Check, X, ChevronDown, PanelLeftClose, Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
@@ -15,6 +15,8 @@ const links = [
   { to: '/image', icon: Image, label: 'Image' },
   { to: '/learn', icon: BookOpen, label: 'Learn' },
 ];
+
+const appDownloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || '';
 
 export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
   const { user, logout } = useAuth();
@@ -79,7 +81,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
 
   if (collapsed) {
     return (
-      <aside className="flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1">
+      <aside className="hidden lg:flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1">
         <button onClick={onToggle} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg mb-2">
           <PanelLeftClose size={18} />
         </button>
@@ -89,6 +91,11 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
           </NavLink>
         ))}
         <div className="flex-1" />
+        {appDownloadUrl && (
+          <a href={appDownloadUrl} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-lg text-primary hover:bg-bg-tertiary transition-colors" title="Download App">
+            <Smartphone size={20} />
+          </a>
+        )}
         <NavLink to="/settings" onClick={handleNavClick} className={({ isActive }) => `p-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary/20 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-bg-tertiary'}`} title="Settings">
           <Settings size={20} />
         </NavLink>
@@ -100,7 +107,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
   }
 
   return (
-    <aside className="flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0">
+    <aside className="hidden lg:flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0">
       <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -165,7 +172,18 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
         </div>
       </div>
 
-      <div className="border-t border-border p-2">
+      <div className="border-t border-border p-2 space-y-1">
+        {appDownloadUrl && (
+          <a
+            href={appDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors"
+          >
+            <Smartphone size={18} />
+            <span>Download App</span>
+          </a>
+        )}
         <button onClick={() => setProfileOpen(!profileOpen)} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-bg-tertiary transition-colors">
           <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center shrink-0">
             <span className="text-primary text-sm font-bold">{user?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}</span>
@@ -176,7 +194,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
           <ChevronDown size={14} className={`text-text-muted transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
         </button>
         {profileOpen && (
-          <div className="mt-1 px-2 space-y-0.5">
+          <div className="px-2 space-y-0.5">
             <NavLink to="/settings" onClick={() => { setProfileOpen(false); handleNavClick(); }}
               className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'}`}>
               <Settings size={16} /> Settings

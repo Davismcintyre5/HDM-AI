@@ -8,7 +8,7 @@ from services.vault.security_service import vault_security_service
 from services.vault.command_service import vault_command_service
 from services.vault.report_service import vault_report_service
 
-router = APIRouter(prefix="/vault", tags=["Vault AI"])
+router = APIRouter(prefix="/vault", tags=["NexGuard AI"])
 
 @router.post("/public/chat")
 async def public_chat(request: ChatRequest):
