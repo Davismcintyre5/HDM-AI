@@ -1,7 +1,4 @@
-# ====================================================================================================
 # HDM AI Engine — main.py
-# Stateless AI Server | 7 Modules | Production Ready
-# ====================================================================================================
 
 import sys
 import os
@@ -124,6 +121,8 @@ route_registry = [
     ("vault", "NexGuard AI"),
     ("spark", "Spark Messenger AI"),
     ("vibe", "Vibe Social AI"),
+    ("rvnp", "RVNP Campus Hub"),
+    ("learn", "Learning Studio"),
 ]
 
 loaded = 0

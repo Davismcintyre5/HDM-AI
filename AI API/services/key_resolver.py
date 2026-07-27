@@ -27,6 +27,8 @@ class KeyResolver:
             "vibe_groq": settings.GROQ_API_KEY_SPARK,
             "vault_groq": settings.GROQ_API_KEY_SPARK,
             "widget_groq": settings.GROQ_API_KEY_SPARK,
+            "rvnp_groq": settings.GROQ_API_KEY_SPARK,
+            "learn_groq": settings.GROQ_API_KEY_SPARK,
             "general_gemini": settings.GEMINI_API_KEY,
             "erp_gemini": settings.GEMINI_API_KEY,
             "smartpos_gemini": settings.GEMINI_API_KEY,
@@ -34,10 +36,12 @@ class KeyResolver:
             "vibe_gemini": settings.GEMINI_API_KEY,
             "vault_gemini": settings.GEMINI_API_KEY,
             "widget_gemini": settings.GEMINI_API_KEY,
+            "rvnp_gemini": settings.GEMINI_API_KEY,
+            "learn_gemini": settings.GEMINI_API_KEY,
         }
 
         self.default_models = {
-            "groq": "llama-3.3-70b-versatile",
+            "groq": "qwen/qwen3.6-27b",
             "gemini": "gemini-2.5-flash",
         }
 

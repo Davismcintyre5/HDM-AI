@@ -81,7 +81,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
 
   if (collapsed) {
     return (
-      <aside className="hidden lg:flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1">
+      <aside className="flex flex-col w-16 bg-bg-secondary border-r border-border shrink-0 items-center py-3 gap-1 h-full">
         <button onClick={onToggle} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg mb-2">
           <PanelLeftClose size={18} />
         </button>
@@ -107,7 +107,8 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0">
+    <aside className="flex flex-col w-64 bg-bg-secondary border-r border-border shrink-0 h-full">
+      {/* Header */}
       <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -115,20 +116,28 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
           </div>
           <span className="text-text-primary font-semibold">HDM AI</span>
         </div>
-        <button onClick={onMobileClose} className="lg:hidden p-1.5 text-text-muted hover:text-text-primary rounded-lg">
-          <X size={18} />
-        </button>
-        <button onClick={onToggle} className="hidden lg:block p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg">
-          <PanelLeftClose size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          {onMobileClose && (
+            <button onClick={onMobileClose} className="lg:hidden p-1.5 text-text-muted hover:text-text-primary rounded-lg">
+              <X size={18} />
+            </button>
+          )}
+          {onToggle && (
+            <button onClick={onToggle} className="hidden lg:block p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg">
+              <PanelLeftClose size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* New Chat */}
       <div className="p-3">
         <button onClick={newChat} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-black rounded-lg text-sm font-medium transition-colors">
           <Plus size={16} /> New Chat
         </button>
       </div>
 
+      {/* Navigation */}
       <nav className="px-2 space-y-0.5">
         {links.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} onClick={handleNavClick}
@@ -142,6 +151,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
 
       <div className="px-4 py-2"><div className="border-t border-border" /></div>
 
+      {/* Conversations */}
       <div className="flex-1 overflow-y-auto px-2">
         <p className="px-3 py-1 text-xs font-medium text-text-muted uppercase tracking-wider">Recent Chats</p>
         <div className="space-y-0.5">
@@ -172,14 +182,11 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose }) {
         </div>
       </div>
 
+      {/* Footer */}
       <div className="border-t border-border p-2 space-y-1">
         {appDownloadUrl && (
-          <a
-            href={appDownloadUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors"
-          >
+          <a href={appDownloadUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors">
             <Smartphone size={18} />
             <span>Download App</span>
           </a>

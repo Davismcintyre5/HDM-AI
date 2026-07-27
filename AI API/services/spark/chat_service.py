@@ -1,3 +1,7 @@
+# ====================================================================================================
+# HDM AI Engine - services/spark/chat_service.py
+# ====================================================================================================
+
 from typing import Dict, Any, List, Optional
 from services.ai_service import ai_service
 import json
@@ -21,22 +25,16 @@ class SparkChatService:
         if feature == "public":
             system = "You are Spark Messenger AI, a secure messaging platform. Answer questions about features, privacy, and getting started."
             if data:
-                if data.get("features"):
-                    system += "\n\nFEATURES:\n" + "\n".join([f"  • {f}" for f in data["features"]])
-                if data.get("pricing"):
-                    p = data["pricing"]
-                    system += f"\n\nPRICING: {p}"
+                if data.get("features"): system += "\n\nFEATURES:\n" + "\n".join([f"  • {f}" for f in data["features"]])
+                if data.get("pricing"): system += f"\n\nPRICING: {data['pricing']}"
                 system += "\n\n⚠️ Use ONLY the above information. Do not invent details. Encourage sign-up."
             system += "\nDo NOT ask the visitor to connect anything."
         else:
             system = "You are Spark Messenger AI. Help with messaging and communication."
-            if data:
-                system += self._build_context(message, data)
-        
+            if data: system += self._build_context(message, data)
         if language != "en": system += f" Respond in {language}."
-        
         result = await ai_service.groq_chat([{"role": "system", "content": system}, {"role": "user", "content": message}], max_tokens=800, module="spark")
-        return {"reply": result.get("reply", ""), "tokens_used": result.get("tokens_used", 0)}
+        return {"reply": result.get("reply", ""), "tokens_used": result.get("tokens_used", 0), "model": result.get("model", "")}
 
     async def translate(self, text: str, target_language: str, data: dict = None) -> Dict[str, Any]:
         result = await ai_service.groq_chat([{"role": "user", "content": f"Translate to {target_language}: {text}"}], max_tokens=500, module="spark")

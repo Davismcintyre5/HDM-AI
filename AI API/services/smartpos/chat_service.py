@@ -1,3 +1,7 @@
+# ====================================================================================================
+# HDM AI Engine - services/smartpos/chat_service.py
+# ====================================================================================================
+
 from typing import Dict, Any, Optional
 from services.ai_service import ai_service
 
@@ -17,7 +21,7 @@ class SmartPOSChatService:
         result = await ai_service.groq_chat(history, max_tokens=800, module="smartpos")
         reply = result.get("reply", "Sorry, I couldn't process that.")
 
-        return {"reply": reply, "tokens_used": result.get("tokens_used", 0)}
+        return {"reply": reply, "tokens_used": result.get("tokens_used", 0), "model": result.get("model", "")}
 
     def _build_system_prompt(self, feature: str, data: Optional[dict] = None) -> str:
         if feature == "public":

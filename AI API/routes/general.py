@@ -1,7 +1,3 @@
-# ====================================================================================================
-# HDM AI Engine - routes/general.py
-# General AI Routes — Stateless, No Auth, No DB Writes
-# ====================================================================================================
 
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import StreamingResponse

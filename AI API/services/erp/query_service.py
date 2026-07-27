@@ -99,8 +99,6 @@ Do NOT mention connecting ERP, business data, or tenant features.
             if context.get("tenant_info"):
                 system_parts.append(f"\n--- TENANT CONTEXT ---")
                 system_parts.append(f"Tenant: {json.dumps(context['tenant_info'])}")
-        else:
-            is_landing = False
 
         if data and not is_landing:
             system_parts.append("\n--- REAL ERP DATA ---")
@@ -134,6 +132,7 @@ Do NOT mention connecting ERP, business data, or tenant features.
         response_data = {
             "reply": reply, "provider": provider,
             "tokens_used": result.get("tokens_used", 0),
+            "model": result.get("model", ""),
             "data_analyzed": data is not None,
         }
         if result.get("success"):

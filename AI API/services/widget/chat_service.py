@@ -1,3 +1,7 @@
+# ====================================================================================================
+# HDM AI Engine - services/widget/chat_service.py
+# ====================================================================================================
+
 from typing import Dict, Any, Optional
 from services.ai_service import ai_service
 
@@ -14,7 +18,7 @@ class WidgetChatService:
         result = await ai_service.groq_chat(history, max_tokens=800, module="widget")
         reply = result.get("reply", "Sorry, I couldn't process that.")
 
-        return {"reply": reply, "source": source, "tokens_used": result.get("tokens_used", 0)}
+        return {"reply": reply, "source": source, "tokens_used": result.get("tokens_used", 0), "model": result.get("model", "")}
 
     def _build_system_prompt(self, source: str, context: Optional[dict] = None, data: Optional[dict] = None) -> str:
         system_prompts = {
@@ -71,10 +75,8 @@ class WidgetChatService:
                 desc = doc.get("description", "")
                 price = doc.get("price", 0)
                 line = f"  • {name}: KSh {price}"
-                if desc:
-                    line += f" — {desc}"
+                if desc: line += f" — {desc}"
                 parts.append(line)
-            parts.append("When asked what's for sale, list all documents above with prices.")
 
         if software:
             parts.append("\nSOFTWARE FOR SALE:")
@@ -83,18 +85,15 @@ class WidgetChatService:
                 desc = sw.get("description", "")
                 price = sw.get("price", 0)
                 line = f"  • {name}: KSh {price}"
-                if desc:
-                    line += f" — {desc}"
+                if desc: line += f" — {desc}"
                 parts.append(line)
 
         if categories:
             if isinstance(categories, list):
                 cat_names = []
                 for cat in categories:
-                    if isinstance(cat, dict):
-                        cat_names.append(cat.get("title") or cat.get("name", ""))
-                    else:
-                        cat_names.append(str(cat))
+                    if isinstance(cat, dict): cat_names.append(cat.get("title") or cat.get("name", ""))
+                    else: cat_names.append(str(cat))
                 parts.append(f"\nCATEGORIES: {', '.join(cat_names)}")
             else:
                 parts.append(f"\nCATEGORIES: {categories}")
@@ -113,7 +112,6 @@ class WidgetChatService:
             parts.append(f"\nLINKS: {', '.join(social.keys())}")
 
         system += "\n".join(parts)
-
         return system
 
 widget_chat_service = WidgetChatService()

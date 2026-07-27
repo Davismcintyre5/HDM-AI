@@ -74,7 +74,7 @@ export default function Chat() {
             <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
               <Sparkles size={36} className="text-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-text-primary mb-2">HDM AI Assistant</h2>
+            <h2 className="text-2xl font-bold text-text-primary mb-2">HDM AI</h2>
             <p className="text-sm">Ask anything, upload files, or enable Deep Think.</p>
           </div>
         )}

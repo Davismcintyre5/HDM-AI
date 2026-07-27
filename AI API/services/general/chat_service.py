@@ -20,7 +20,7 @@ class ChatService:
         provider: str = "groq",
         model: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 1024,
+        max_tokens: int = 4096,
         search_enabled: bool = False,
         deep_think: bool = False,
         system_prompt: Optional[str] = None,
@@ -28,10 +28,8 @@ class ChatService:
     ) -> Dict[str, Any]:
         """Main chat handler — stateless. MERN provides everything."""
 
-        # Build messages list
         messages_list = []
 
-        # System prompt
         if system_prompt:
             final_prompt = system_prompt
         else:
@@ -40,7 +38,6 @@ class ChatService:
                 deep_think=deep_think,
             )
 
-        # Add data context if provided
         if data:
             import json
             data_str = json.dumps(data, indent=2) if isinstance(data, (dict, list)) else str(data)
@@ -51,15 +48,12 @@ class ChatService:
 
         messages_list.insert(0, {"role": "system", "content": final_prompt})
 
-        # Add conversation history from MERN
         if messages:
             messages_list.extend(messages[-self.MAX_HISTORY:])
 
-        # Add current user message if not already in history
         if not messages or messages[-1].get("content") != message:
             messages_list.append({"role": "user", "content": message})
 
-        # Call AI
         if provider == "gemini":
             result = await ai_service.gemini_chat_full(
                 messages_list,
@@ -71,7 +65,7 @@ class ChatService:
         else:
             result = await ai_service.groq_chat(
                 messages_list,
-                model=model or "llama-3.3-70b-versatile",
+                model=model or "qwen/qwen3.6-27b",
                 temperature=temperature,
                 max_tokens=max_tokens,
                 module="general",
@@ -80,7 +74,6 @@ class ChatService:
         reply = result.get("reply", "Sorry, I couldn't process that.")
         model_used = result.get("model", provider)
 
-        # Generate suggestions
         suggestions = await self._generate_suggestions(message, reply)
 
         return {
@@ -93,51 +86,38 @@ class ChatService:
             "deep_think_used": deep_think,
         }
 
-    # ================================================================================================
-    # DYNAMIC SYSTEM PROMPT
-    # ================================================================================================
-
-    def _build_dynamic_prompt(
-        self,
-        has_data: bool = False,
-        deep_think: bool = False,
-    ) -> str:
-        """Build a context-aware system prompt."""
-
+    def _build_dynamic_prompt(self, has_data: bool = False, deep_think: bool = False) -> str:
         parts = [
             "You are HDM AI, a versatile and intelligent assistant.",
             "You help with general questions, learning, coding, content analysis, business intelligence, and more.",
             "Be warm, natural, and conversational. Adapt your tone to the user's needs.",
             "When appropriate, be concise. When detail is needed, be thorough.",
         ]
-
         if has_data:
-            parts.append(
-                "The user has connected external business systems. "
-                "Analyze the provided data and give insights based on it."
-            )
-
+            parts.append("The user has connected external business systems. Analyze the provided data and give insights based on it.")
         return "\n\n".join(parts)
 
-    # ================================================================================================
-    # SUGGESTIONS
-    # ================================================================================================
-
     async def _generate_suggestions(self, user_msg: str, ai_reply: str) -> List[str]:
-        """Generate follow-up questions."""
         try:
-            result = await ai_service.groq_chat(
-                messages=[
-                    {"role": "system", "content": "Generate 3 follow-up questions. One per line, no numbers."},
-                    {"role": "user", "content": f"User: {user_msg}\nAssistant: {ai_reply[:300]}"},
-                ],
-                temperature=0.8,
-                max_tokens=100,
-                module="general",
+            result = await ai_service.gemini_chat(
+                prompt=f"User: {user_msg}\nAI: {ai_reply[:150]}\n\nWrite 3 follow-up questions:",
+                temperature=0.5, max_tokens=300, module="general",
             )
             if result.get("success"):
-                return [s.strip() for s in result["reply"].split("\n") if s.strip()][:3]
-        except Exception:
+                reply = result["reply"]
+                lines = []
+                for line in reply.split("\n"):
+                    line = line.strip().lstrip("1234567890. -•*#")
+                    if not line or len(line) < 10:
+                        continue
+                    if line.lower().startswith("here are") and len(line) < 40:
+                        continue
+                    if line.lower().startswith(("follow-up", "sure", "okay", "let me", "i can", "i hope", "feel free", "would you", "let us")):
+                        continue
+                    if "?" in line or len(line) > 20:
+                        lines.append(line)
+                return lines[:3]
+        except:
             pass
         return []
 

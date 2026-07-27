@@ -1,3 +1,7 @@
+# ====================================================================================================
+# HDM AI Engine - services/vibe/chat_service.py
+# ====================================================================================================
+
 from typing import Dict, Any, Optional
 from services.ai_service import ai_service
 import json
@@ -15,18 +19,15 @@ class VibeChatService:
         if feature == "public":
             system = "You are Vibe Social AI, a social media and content creation platform. Answer questions about features, content creation, monetization, and getting started."
             if data:
-                if data.get("features"):
-                    system += "\n\nFEATURES:\n" + "\n".join([f"  • {f}" for f in data["features"]])
-                if data.get("pricing"):
-                    system += f"\n\nPRICING: {data['pricing']}"
+                if data.get("features"): system += "\n\nFEATURES:\n" + "\n".join([f"  • {f}" for f in data["features"]])
+                if data.get("pricing"): system += f"\n\nPRICING: {data['pricing']}"
                 system += "\n\n⚠️ Use ONLY the above information. Do not invent details."
             system += "\nDo NOT ask the visitor to connect anything. Encourage sign-up."
             result = await ai_service.groq_chat([{"role": "system", "content": system}, {"role": "user", "content": message}], max_tokens=800, module="vibe")
         else:
             context = self._build_context(data)
             result = await ai_service.groq_chat([{"role": "system", "content": "You are Vibe Social AI. Help with social media and content." + context}, {"role": "user", "content": message}], max_tokens=800, module="vibe")
-        
-        return {"reply": result.get("reply", ""), "conversation_id": conversation_id or "new", "tokens_used": result.get("tokens_used", 0)}
+        return {"reply": result.get("reply", ""), "conversation_id": conversation_id or "new", "tokens_used": result.get("tokens_used", 0), "model": result.get("model", "")}
 
     async def assistant(self, user_id: str, task: str, context: dict = None, data: dict = None) -> Dict[str, Any]:
         prompt = f"Help with: {task}"
