@@ -65,7 +65,7 @@ class ChatService:
         else:
             result = await ai_service.groq_chat(
                 messages_list,
-                model=model or "qwen/qwen3.6-27b",
+                model=model or "openai/gpt-oss-20b",
                 temperature=temperature,
                 max_tokens=max_tokens,
                 module="general",
@@ -99,23 +99,16 @@ class ChatService:
 
     async def _generate_suggestions(self, user_msg: str, ai_reply: str) -> List[str]:
         try:
-            result = await ai_service.gemini_chat(
-                prompt=f"User: {user_msg}\nAI: {ai_reply[:150]}\n\nWrite 3 follow-up questions:",
-                temperature=0.5, max_tokens=300, module="general",
+            result = await ai_service.groq_chat(
+                messages=[
+                    {"role": "system", "content": "Generate 3 follow-up questions. Output ONLY the questions, one per line."},
+                    {"role": "user", "content": f"User: {user_msg}\nAssistant: {ai_reply[:150]}\n\nFollow-up questions:"},
+                ],
+                temperature=0.5, max_tokens=200, module="general",
             )
             if result.get("success"):
                 reply = result["reply"]
-                lines = []
-                for line in reply.split("\n"):
-                    line = line.strip().lstrip("1234567890. -•*#")
-                    if not line or len(line) < 10:
-                        continue
-                    if line.lower().startswith("here are") and len(line) < 40:
-                        continue
-                    if line.lower().startswith(("follow-up", "sure", "okay", "let me", "i can", "i hope", "feel free", "would you", "let us")):
-                        continue
-                    if "?" in line or len(line) > 20:
-                        lines.append(line)
+                lines = [s.strip().lstrip("1234567890. -•*#") for s in reply.split("\n") if s.strip() and len(s.strip()) > 10]
                 return lines[:3]
         except:
             pass

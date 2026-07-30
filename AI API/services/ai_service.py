@@ -12,6 +12,8 @@ from loguru import logger
 from config import settings
 from services.key_resolver import key_resolver
 
+STYLE_INSTRUCTION = "Use bullet points (•) for lists. Never use markdown tables. Keep responses clean and readable."
+
 
 class AIService:
 
@@ -21,11 +23,28 @@ class AIService:
 
     @staticmethod
     def _clean_response(text: str) -> str:
-        """Remove thinking tags from reasoning models."""
+        """Remove thinking tags and raw thinking blocks from reasoning models."""
         if not text:
             return text
-
-        # Handle unclosed <think> tags
+        if '</think>' in text and '<think>' not in text:
+            idx = text.rfind('</think>')
+            text = text[idx + len('</think>'):].strip()
+        if "thinking process:" in text.lower() and "here's a" in text.lower():
+            markers = ["Output Generation.", "[Done]", "✅\n\n", "\n\n\n"]
+            for marker in markers:
+                idx = text.rfind(marker)
+                if idx > 0:
+                    text = text[idx + len(marker):].strip()
+                    break
+            else:
+                lines = text.split('\n')
+                clean_start = 0
+                for i, line in enumerate(lines):
+                    if line.strip().startswith(('Here are', 'Based on', 'We have', 'The apps', 'Our portfolio', 'Here is', 'These are')):
+                        clean_start = i
+                        break
+                if clean_start > 0:
+                    text = '\n'.join(lines[clean_start:]).strip()
         if '<think>' in text and '</think>' not in text:
             lines = text.split('\n')
             clean_lines = []
@@ -38,15 +57,20 @@ class AIService:
                 'To ', 'For ', 'At ', 'On ', 'By ', 'With ',
                 'It ', 'As ', 'If ', 'A ', 'An ', 'Our ',
             ]
+            thinking_phrases = [
+                "Here's a thinking process", "Here is a thinking process",
+                "thinking process", "Analyze User Input", "Identify Key",
+                "Formulate Response", "Draft Response", "Self-Correction",
+            ]
             for line in lines:
                 if not found_response:
-                    if '<think>' in line:
-                        continue
-                    if re.match(r'^\d+\.\s+\*\*', line):
+                    if '<think>' in line: continue
+                    stripped = line.strip()
+                    if any(p in stripped for p in thinking_phrases): continue
+                    if re.match(r'^\d+\.\s+\*\*', stripped):
                         found_response = True
                         clean_lines.append(line)
                         continue
-                    stripped = line.strip()
                     if any(stripped.startswith(s) for s in response_starters) and len(stripped) > 20:
                         found_response = True
                 if found_response:
@@ -55,11 +79,22 @@ class AIService:
                 text = '\n'.join(clean_lines).strip()
             else:
                 text = ''
-
-        # Clean properly closed tags
+        if re.search(r'^\d+\.\s+\*\*.*\*\*', text, re.MULTILINE):
+            lines = text.split('\n')
+            clean_lines = []
+            found = False
+            for line in lines:
+                stripped = line.strip()
+                if not found:
+                    if re.match(r'^\d+\.\s+\*\*', stripped): continue
+                    if stripped and not stripped.startswith(('•', '-', '*')):
+                        found = True
+                if found:
+                    clean_lines.append(line)
+            if clean_lines:
+                text = '\n'.join(clean_lines).strip()
         text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
         text = re.sub(r'={THINK}.*?={THINK}', '', text, flags=re.DOTALL).strip()
-
         return text.strip()
 
     # ================================================================================================
@@ -69,7 +104,7 @@ class AIService:
     async def groq_chat(
         self,
         messages: List[Dict[str, str]],
-        model: str = "qwen/qwen3.6-27b",
+        model: str = "openai/gpt-oss-20b",
         temperature: float = 0.7,
         max_tokens: int = 4096,
         timeout: int = 30,
@@ -79,13 +114,23 @@ class AIService:
         if not resolved.get("key"):
             return {"success": False, "error": "No Groq key configured for this module."}
 
+        # Inject style instruction into system prompt
+        styled_messages = []
+        for m in messages:
+            if m["role"] == "system":
+                styled_messages.append({"role": "system", "content": f"{m['content']}\n\n{STYLE_INSTRUCTION}"})
+            else:
+                styled_messages.append(m)
+        if not any(m["role"] == "system" for m in messages):
+            styled_messages.insert(0, {"role": "system", "content": STYLE_INSTRUCTION})
+
         headers = {
             "Authorization": f"Bearer {resolved['key']}",
             "Content-Type": "application/json",
         }
         payload = {
             "model": resolved.get("model", model),
-            "messages": messages,
+            "messages": styled_messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": False,
@@ -136,7 +181,7 @@ class AIService:
     async def groq_chat_stream(
         self,
         messages: List[Dict[str, str]],
-        model: str = "qwen/qwen3.6-27b",
+        model: str = "openai/gpt-oss-20b",
         temperature: float = 0.7,
         max_tokens: int = 4096,
         module: str = "general",
@@ -145,13 +190,22 @@ class AIService:
         if not resolved.get("key"):
             return
 
+        styled_messages = []
+        for m in messages:
+            if m["role"] == "system":
+                styled_messages.append({"role": "system", "content": f"{m['content']}\n\n{STYLE_INSTRUCTION}"})
+            else:
+                styled_messages.append(m)
+        if not any(m["role"] == "system" for m in messages):
+            styled_messages.insert(0, {"role": "system", "content": STYLE_INSTRUCTION})
+
         headers = {
             "Authorization": f"Bearer {resolved['key']}",
             "Content-Type": "application/json",
         }
         payload = {
             "model": resolved.get("model", model),
-            "messages": messages,
+            "messages": styled_messages,
             "stream": True,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -160,47 +214,36 @@ class AIService:
         async with httpx.AsyncClient(timeout=60) as client:
             try:
                 async with client.stream("POST", self.groq_chat_url, headers=headers, json=payload) as response:
-                    if response.status_code != 200:
-                        return
+                    if response.status_code != 200: return
                     async for line in response.aiter_lines():
                         if line.startswith("data: "):
                             chunk = line[6:]
-                            if chunk == "[DONE]":
-                                break
+                            if chunk == "[DONE]": break
                             try:
                                 data = json.loads(chunk)
                                 content = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
-                                if content:
-                                    yield content
-                            except json.JSONDecodeError:
-                                continue
-            except (httpx.ReadTimeout, httpx.ConnectError):
-                return
+                                if content: yield content
+                            except json.JSONDecodeError: continue
+            except (httpx.ReadTimeout, httpx.ConnectError): return
             except Exception as e:
                 logger.error(f"Groq stream[{module}]: {str(e)[:200]}")
-                return
 
     # ================================================================================================
     # GEMINI CHAT
     # ================================================================================================
 
     async def gemini_chat(
-        self,
-        prompt: str,
-        model: str = "gemini-2.5-flash",
-        temperature: float = 0.7,
-        max_tokens: int = 4096,
-        module: str = "general",
+        self, prompt: str, model: str = "gemini-2.5-flash", temperature: float = 0.7,
+        max_tokens: int = 4096, module: str = "general",
     ) -> Dict[str, Any]:
         resolved = await key_resolver.resolve(module, "gemini")
         if not resolved.get("key"):
             return {"success": False, "error": "No Gemini key configured."}
 
+        prompt = f"{STYLE_INSTRUCTION}\n\n{prompt}"
+
         url = f"{self.gemini_base}/{resolved.get('model', model)}:generateContent?key={resolved['key']}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
-        }
+        payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}}
 
         async with httpx.AsyncClient(timeout=30) as client:
             try:
@@ -220,24 +263,18 @@ class AIService:
     # ================================================================================================
 
     async def gemini_chat_full(
-        self,
-        messages: List[Dict[str, str]],
-        model: str = "gemini-2.5-flash",
-        temperature: float = 0.7,
-        max_tokens: int = 4096,
-        timeout: int = 30,
-        module: str = "general",
+        self, messages: List[Dict[str, str]], model: str = "gemini-2.5-flash",
+        temperature: float = 0.7, max_tokens: int = 4096, timeout: int = 30, module: str = "general",
     ) -> Dict[str, Any]:
         resolved = await key_resolver.resolve(module, "gemini")
         if not resolved.get("key"):
             return {"success": False, "error": "No Gemini key configured."}
 
         prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+        prompt = f"{STYLE_INSTRUCTION}\n\n{prompt}"
+
         url = f"{self.gemini_base}/{resolved.get('model', model)}:generateContent?key={resolved['key']}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
-        }
+        payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}}
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             try:
@@ -265,8 +302,7 @@ class AIService:
 
         url = f"{self.gemini_base}/{resolved.get('model', model)}:generateContent?key={resolved['key']}"
         parts = [{"text": prompt}]
-        if image_base64:
-            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": image_base64}})
+        if image_base64: parts.append({"inlineData": {"mimeType": "image/jpeg", "data": image_base64}})
 
         async with httpx.AsyncClient(timeout=30) as client:
             try:

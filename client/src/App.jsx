@@ -15,6 +15,7 @@ import Analyze from './pages/Analyze';
 import Code from './pages/Code';
 import ImagePage from './pages/Image';
 import Learn from './pages/Learn';
+import Support from './pages/Support';
 import NotFound from './pages/NotFound';
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/code" element={<Code />} />
               <Route path="/image" element={<ImagePage />} />
               <Route path="/learn" element={<Learn />} />
+              <Route path="/support" element={<Support />} />
             </Route>
             <Route path="/" element={<Navigate to="/chat" />} />
             <Route path="*" element={<NotFound />} />

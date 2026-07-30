@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare, Settings, LogOut, FileSearch, Code, Image, BookOpen,
-  Plus, Trash2, Pencil, Check, X, ChevronDown, PanelLeftClose, Smartphone
+  Plus, Trash2, Pencil, Check, X, ChevronDown, PanelLeftClose,HelpCircle , Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
@@ -14,6 +14,7 @@ const links = [
   { to: '/code', icon: Code, label: 'Code' },
   { to: '/image', icon: Image, label: 'Image' },
   { to: '/learn', icon: BookOpen, label: 'Learn' },
+  { to: '/support', icon: HelpCircle, label: 'Support' },
 ];
 
 const appDownloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || '';

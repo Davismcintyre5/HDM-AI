@@ -41,7 +41,7 @@ class KeyResolver:
         }
 
         self.default_models = {
-            "groq": "qwen/qwen3.6-27b",
+            "groq": "openai/gpt-oss-20b",
             "gemini": "gemini-2.5-flash",
         }
 
