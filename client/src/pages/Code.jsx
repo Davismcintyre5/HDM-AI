@@ -59,7 +59,7 @@ export default function Code() {
     setLoading(true);
     setOutput('Running...');
     try {
-      const { data } = await api.post('/general/execute', { language, code, stdin });
+      const { data } = await api.post('/execute', { language, code, stdin });
       const result = data.data;
       setOutput(result.stdout || result.stderr || 'No output');
       const item = { id: Date.now(), language, code, stdin, output: result.stdout || result.stderr, fileName, timestamp: new Date().toISOString(), status: result.exit_code === 0 ? 'success' : 'error' };

@@ -9,6 +9,7 @@ const { connectRedis, getRedis } = require('./config/redis');
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const keyResolver = require('./services/keyResolver');
+const schedulers = require('./schedulers');
 
 const app = express();
 
@@ -28,10 +29,9 @@ app.use(logger);
 app.get('/', (req, res) => {
   res.json({
     name: config.appName,
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'running',
     environment: config.nodeEnv,
-    docs: config.isDev ? '/docs' : null,
     health: '/health',
   });
 });
@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({
     name: config.appName,
-    version: '1.0.0',
+    version: '2.0.0',
     endpoints: {
       client: '/api/v1',
       admin: '/api/v1/admin',
@@ -64,12 +64,21 @@ app.get('/health', async (req, res) => {
       redisStatus = 'disconnected';
     }
   }
+
+  const memUsage = process.memoryUsage();
+  const uptime = process.uptime();
+
   res.json({
     status: mongoStatus === 'connected' ? 'healthy' : 'degraded',
     server: 'running',
-    version: '1.0.0',
+    version: '2.0.0',
     environment: config.nodeEnv,
     timestamp: new Date().toISOString(),
+    uptime: Math.floor(uptime),
+    memory: {
+      rss: Math.round(memUsage.rss / 1024 / 1024),
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+    },
     mongodb: mongoStatus,
     redis: redisStatus,
     python: config.pythonAiUrl,
@@ -77,7 +86,6 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/api/v1/internal', require('./routes/internal/keys'));
-app.use('/api/v1/projects', require('./routes/projects'));
 app.use('/api/v1', require('./routes'));
 
 app.use(errorHandler);
@@ -87,7 +95,7 @@ const PORT = config.port;
 async function start() {
   console.log('');
   console.log('╔══════════════════════════════════════════════╗');
-  console.log(`║  ${config.appName} Server v1.0.0                   ║`);
+  console.log(`║  ${config.appName} Server v2.0.0                   ║`);
   console.log(`║  Environment: ${config.nodeEnv.padEnd(34)}║`);
   console.log(`║  Port: ${String(PORT).padEnd(38)}║`);
   console.log('╚══════════════════════════════════════════════╝');
@@ -127,6 +135,8 @@ async function start() {
   await keyResolver.refresh();
   console.log(`Key Resolver: Loaded\n`);
 
+  schedulers.start();
+
   const server = app.listen(PORT, () => {
     console.log(`Server running on ${config.baseUrl}`);
     console.log(`Client: ${config.clientUrl}`);
@@ -136,6 +146,7 @@ async function start() {
 
   const shutdown = async (signal) => {
     console.log(`\n${signal} received. Shutting down gracefully...`);
+    schedulers.stop();
     server.close(async () => {
       await mongoose.disconnect();
       const r = getRedis();

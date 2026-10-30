@@ -35,7 +35,7 @@ export default function ImagePage() {
     setLoading(true);
     setImages([]);
     try {
-      const { data } = await api.post('/general/image', { prompt, style, size, num_images: numImages });
+      const { data } = await api.post('/image', { prompt, style, size, num_images: numImages });
       const generated = (data.data.images || []).map((img, i) => ({
         id: Date.now() + i,
         base64: img.base64 || null,

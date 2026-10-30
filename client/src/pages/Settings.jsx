@@ -81,7 +81,7 @@ export default function Settings() {
   const handleCreateKey = async () => {
     setCreating(true);
     try {
-      const { data } = await api.post('/keys/outbound', { project: 'general', name: newKeyName || 'My Key' });
+      const { data } = await api.post('/keys/outbound', { project: 'completion', name: newKeyName || 'My Key' });
       setNewKeyFull(data.data.fullKey);
       loadOutbound();
       addToast('Key created!', 'success');
@@ -221,7 +221,7 @@ export default function Settings() {
             {subtab === 'outbound' && (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-text-secondary">Keys for apps to call HDM AI</p>
+                  <p className="text-sm text-text-secondary">Use these keys to call the Completion API</p>
                   <Button size="sm" onClick={() => { setNewKeyFull(null); setNewKeyName(''); setShowCreateKey(true); }}><Plus className="w-4 h-4 mr-1" /> New Key</Button>
                 </div>
 
@@ -238,9 +238,9 @@ export default function Settings() {
 
                 {showCreateKey && (
                   <Card className="mb-4">
-                    <h3 className="text-sm font-medium text-text-primary mb-3">New Outbound Key</h3>
+                    <h3 className="text-sm font-medium text-text-primary mb-3">New API Key</h3>
                     <Input value={newKeyName} onChange={e => setNewKeyName(e.target.value)} placeholder="Key name (e.g., My App)" className="mb-3" />
-                    <p className="text-xs text-text-muted mb-3">Only General AI keys are available.</p>
+                    <p className="text-xs text-text-muted mb-3">Use this key to call the Completion API.</p>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleCreateKey} loading={creating}>Create</Button>
                       <Button size="sm" variant="secondary" onClick={() => setShowCreateKey(false)}>Cancel</Button>
@@ -249,7 +249,7 @@ export default function Settings() {
                 )}
 
                 <div className="space-y-3">
-                  {outboundKeys.length === 0 && <Card className="text-center py-12 text-text-muted"><Key size={32} className="mx-auto mb-3 opacity-30" /><p>No outbound keys</p></Card>}
+                  {outboundKeys.length === 0 && <Card className="text-center py-12 text-text-muted"><Key size={32} className="mx-auto mb-3 opacity-30" /><p>No API keys</p></Card>}
                   {outboundKeys.map(k => (
                     <Card key={k._id}>
                       <div className="flex items-center justify-between">

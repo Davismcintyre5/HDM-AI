@@ -50,7 +50,7 @@ export default function Analyze() {
         }
       }
 
-      const { data } = await api.post('/general/analyze', { content: textToAnalyze, analysis_type: type });
+      const { data } = await api.post('/analyze', { content: textToAnalyze, analysis_type: type });
       setResult(data.data || data);
       addToast('Analysis complete', 'success');
       setFiles([]);

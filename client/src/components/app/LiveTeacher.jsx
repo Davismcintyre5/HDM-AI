@@ -41,7 +41,7 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
     }
-    
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { addToast('Speech not supported', 'error'); return; }
 
@@ -59,7 +59,7 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
       setNotes(prev => [...prev, { role: 'user', content: text }]);
 
       try {
-        const { data } = await api.post('/general/learn', {
+        const { data } = await api.post('/chat', {
           topic: topic || 'General',
           subject: 'general',
           level: 'intermediate',
@@ -102,7 +102,6 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg p-4">
-      {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
         <button onClick={onReturn} className="p-2 text-text-muted hover:text-text-primary rounded-lg hover:bg-bg-tertiary transition-colors">
           <ArrowLeft size={20} />
@@ -117,7 +116,6 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
         </div>
       </div>
 
-      {/* Status */}
       <p className="text-xs text-text-muted mb-6 tracking-wider uppercase">
         {!hasStarted && 'Tap the microphone to begin'}
         {status === 'listening' && '🎤 Listening...'}
@@ -126,7 +124,6 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
         {status === 'idle' && hasStarted && 'Tap mic to ask a question'}
       </p>
 
-      {/* Avatar */}
       <div className={`transform transition-all duration-500 ${
         isSpeaking ? 'scale-110' : 'scale-100'
       } ${status === 'listening' ? 'animate-float' : ''}`}>
@@ -136,7 +133,6 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
         />
       </div>
 
-      {/* Mic button */}
       <div className="flex justify-center mt-8">
         {!isListening ? (
           <button
@@ -169,7 +165,6 @@ export default function LiveTeacher({ language = 'en', topic = '', onClose, onRe
         Mr. HDM only speaks when you tap the mic
       </p>
 
-      {/* Notes panel */}
       {showNotes && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-bg-secondary border-l border-border z-50 flex flex-col shadow-2xl animate-slideIn">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">

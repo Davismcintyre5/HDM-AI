@@ -28,7 +28,7 @@ export default function Keys() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const { data } = await api.post('/keys/outbound', { project: 'general', name: newName || 'My Key' });
+      const { data } = await api.post('/keys/outbound', { project: 'completion', name: newName || 'My Key' });
       setNewKey(data.data.fullKey);
       fetchKeys();
       addToast('Key created!', 'success');
@@ -77,7 +77,7 @@ export default function Keys() {
                 <span className="font-mono text-sm text-text-primary">{k.keyPrefix}</span>
                 <Badge variant="primary">{k.project}</Badge>
               </div>
-              <p className="text-xs text-text-muted mt-1">Created {formatDate(k.createdAt)}</p>
+              <p className="text-xs text-text-muted mt-1">{k.name} • Created {formatDate(k.createdAt)}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => handleRevoke(k._id)}><Trash2 className="w-4 h-4" /></Button>
           </div>
@@ -97,7 +97,7 @@ export default function Keys() {
         ) : (
           <div className="space-y-4">
             <Input label="Key Name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="My App" />
-            <p className="text-xs text-text-muted">Only General AI keys are available.</p>
+            <p className="text-xs text-text-muted">Use this key to call the Completion API.</p>
             <div className="flex gap-2">
               <Button size="sm" onClick={handleCreate} loading={creating}>Create</Button>
               <Button size="sm" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
