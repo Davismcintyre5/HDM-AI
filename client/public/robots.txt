@@ -1,0 +1,16 @@
+# https://www.robotstxt.org/
+
+User-agent: *
+
+Disallow: /dashboard
+Disallow: /chat
+Disallow: /settings
+Disallow: /analyze
+Disallow: /code
+Disallow: /image
+Disallow: /learn
+Disallow: /support
+Disallow: /verify-email
+Disallow: /reset-password
+
+Sitemap: https://ai.hdm.co.ke/sitemap.xml
